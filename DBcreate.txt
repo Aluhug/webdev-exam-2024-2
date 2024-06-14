@@ -1,0 +1,82 @@
+-- Создание таблицы для хранения книг
+CREATE TABLE books (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    year YEAR NOT NULL,
+    publisher VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    pages INT NOT NULL,
+    cover_id INT NOT NULL,
+    FOREIGN KEY (cover_id) REFERENCES covers(id) ON DELETE CASCADE
+);
+
+-- Создание таблицы для хранения обложек
+CREATE TABLE covers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(50) NOT NULL,
+    md5_hash VARCHAR(32) NOT NULL
+);
+
+-- Создание таблицы для хранения жанров
+CREATE TABLE genres (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Создание соединительной таблицы для связи книг и жанров (многие ко многим)
+CREATE TABLE book_genres (
+    book_id INT NOT NULL,
+    genre_id INT NOT NULL,
+    PRIMARY KEY (book_id, genre_id),
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+    FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+);
+
+-- Создание таблицы для хранения пользователей
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255) NOT NULL,
+    middle_name VARCHAR(255),
+    role_id INT NOT NULL,
+    FOREIGN KEY (role_id) REFERENCES roles(id)
+);
+
+-- Создание таблицы для хранения ролей
+CREATE TABLE roles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL
+);
+
+-- Создание таблицы для хранения рецензий
+CREATE TABLE reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT NOT NULL,
+    user_id INT NOT NULL,
+    rating INT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+----------------------------------------------------------------
+
+-- Предзаполнение таблицы ролей
+INSERT INTO roles (name, description) VALUES
+('administrator', 'Полный доступ к системе, включая создание и удаление книг'),
+('moderator', 'Может редактировать данные книг и модерировать рецензии'),
+('user', 'Может оставлять рецензии');
+
+-- Предзаполнение таблицы жанров
+INSERT INTO genres (name) VALUES
+('Научная фантастика'),
+('Фэнтези'),
+('Детектив'),
+('Роман'),
+('Ужасы');

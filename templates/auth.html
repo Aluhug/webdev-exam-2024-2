@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Авторизация{% endblock %}
+{% block content %}
+    <h1 class="mb-3 text-center">Авторизация</h1>
+    <form class="w-50 mx-auto" method="POST">
+        <div class="mb-3">
+            <label for="username" class="form-label">Логин</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Пароль</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+            <label class="form-check-label" for="remember_me">Запомнить меня</label>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 mb-3">Войти</button>
+    </form>
+{% endblock %}
