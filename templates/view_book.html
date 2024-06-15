@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}{{ book.title }}{% endblock %}
+{% block content %}
+    <div class="container mt-5">
+        <h1>{{ book.title }}</h1>
+        <h5>Жанры: {{ book.genres }}</h5>
+        <p>Автор: {{ book.author }}</p>
+        <p>Издатель: {{ book.publisher }}</p>
+        <p>Год: {{ book.year }}</p>
+        <p>Страницы: {{ book.pages }}</p>
+        <p>Описание: {{ book.description }}</p>
+        <p>Средняя оценка: {{ book.average_rating }}</p>
+        <hr>
+        <h3>Рецензии</h3>
+        {% for review in reviews %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ review.username }}</h5>
+                    <p class="card-text">{{ review.text }}</p>
+                    <p class="card-text"><small class="text-muted">Оценка: {{ review.rating }} - {{ review.created_at }}</small></p>
+                    {% if current_user.is_authenticated and current_user.role_id in [1, 2] %}
+                        <a href="{{ url_for('edit_review', review_id=review.id) }}" class="btn btn-warning">Редактировать</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        {% if current_user.is_authenticated and not user_review %}
+            <a href="{{ url_for('add_review', book_id=book.id) }}" class="btn btn-primary">Написать рецензию</a>
+        {% elif user_review %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ user_review.username }}</h5>
+                    <p class="card-text">{{ user_review.text }}</p>
+                    <p class="card-text"><small class="text-muted">Оценка: {{ user_review.rating }} - {{ user_review.created_at }}</small></p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

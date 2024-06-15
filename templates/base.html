@@ -22,7 +22,7 @@
                 <ul class="navbar-nav ml-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('profile') }}">{{ current_user.first_name }} {{ current_user.last_name }}</a>
+                            <span class="nav-link">{{ current_user.first_name }} {{ current_user.last_name }}</span>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('logout') }}">Выйти</a>
@@ -49,7 +49,7 @@
 
     <footer class="mt-auto py-3 bg-dark text-light">
         <div class="container text-center">
-            <span class="text-muted">Группа 221-329, Чегодаев Алексей Станиславович</span>
+            <span class="text-muted">Группа 221-329 Чегодаев Алексей Станиславович</span>
         </div>
     </footer>
 
