@@ -12,21 +12,7 @@
         <p>Средняя оценка: {{ book.average_rating }}</p>
         <hr>
         <h3>Рецензии</h3>
-        {% for review in reviews %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">{{ review.username }}</h5>
-                    <p class="card-text">{{ review.text }}</p>
-                    <p class="card-text"><small class="text-muted">Оценка: {{ review.rating }} - {{ review.created_at }}</small></p>
-                    {% if current_user.is_authenticated and current_user.role_id in [1, 2] %}
-                        <a href="{{ url_for('edit_review', review_id=review.id) }}" class="btn btn-warning">Редактировать</a>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-        {% if current_user.is_authenticated and not user_review %}
-            <a href="{{ url_for('add_review', book_id=book.id) }}" class="btn btn-primary">Написать рецензию</a>
-        {% elif user_review %}
+        {% if current_user.is_authenticated and user_review %}
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">{{ user_review.username }}</h5>
@@ -34,6 +20,23 @@
                     <p class="card-text"><small class="text-muted">Оценка: {{ user_review.rating }} - {{ user_review.created_at }}</small></p>
                 </div>
             </div>
+        {% endif %}
+        {% for review in reviews %}
+            {% if not (current_user.is_authenticated and review.user_id == current_user.id) %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ review.username }}</h5>
+                        <p class="card-text">{{ review.text }}</p>
+                        <p class="card-text"><small class="text-muted">Оценка: {{ review.rating }} - {{ review.created_at }}</small></p>
+                        {% if current_user.is_authenticated and current_user.role_id in [1, 2] %}
+                            <a href="{{ url_for('edit_review', review_id=review.id) }}" class="btn btn-warning">Редактировать</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+        {% if current_user.is_authenticated and not user_review %}
+            <a href="{{ url_for('add_review', book_id=book.id) }}" class="btn btn-primary">Написать рецензию</a>
         {% endif %}
     </div>
 {% endblock %}

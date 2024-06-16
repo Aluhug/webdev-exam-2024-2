@@ -237,8 +237,10 @@ def view_book(cursor, book_id):
     user_review = None
     if current_user.is_authenticated:
         cursor.execute("""
-            SELECT * FROM reviews 
-            WHERE book_id = %s AND user_id = %s
+            SELECT reviews.*, users.username 
+            FROM reviews 
+            LEFT JOIN users ON reviews.user_id = users.id 
+            WHERE reviews.book_id = %s AND reviews.user_id = %s
         """, (book_id, current_user.id))
         user_review = cursor.fetchone()
         
