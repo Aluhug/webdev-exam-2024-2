@@ -122,7 +122,6 @@ def index(cursor):
 
     return render_template('index.html', books=books, page=page, total_pages=total_pages)
 
-
 # Аутентификация
 @app.route('/auth', methods=['POST', 'GET'])
 @db_operation
@@ -237,6 +236,8 @@ def delete_book(cursor, book_id):
         return redirect(url_for('index'))
 
     cursor.execute("DELETE FROM books WHERE id = %s", (book_id,))
+    cursor.execute("DELETE FROM reviews WHERE book_id = %s", (book_id,))
+    cursor.execute("DELETE FROM book_genres WHERE book_id = %s", (book_id,))
     flash(f'Книга "{book.title}" успешно удалена', 'success')
     return redirect(url_for('index'))
 
