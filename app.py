@@ -1,13 +1,17 @@
 import os
+import hashlib
 from functools import wraps
 import mysql.connector as connector
 from flask import Flask, render_template, request, redirect, url_for, flash, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
+from werkzeug.utils import secure_filename
 from mysqldb import DBConnector
 
 app = Flask(__name__)
 application = app
 app.config.from_pyfile('config.py')
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 db_connector = DBConnector(app)
 
 login_manager = LoginManager()
@@ -65,6 +69,29 @@ def moderator_or_admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def save_cover(file):
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(file_path)
+
+    with open(file_path, 'rb') as f:
+        file_hash = hashlib.md5(f.read()).hexdigest()
+
+    with db_connector.connect().cursor(named_tuple=True) as cursor:
+        cursor.execute("SELECT id FROM covers WHERE md5_hash = %s", (file_hash,))
+        existing_cover = cursor.fetchone()
+        if existing_cover:
+            return existing_cover.id
+        else:
+            cursor.execute(
+                "INSERT INTO covers (filename, mime_type, md5_hash) VALUES (%s, %s, %s)",
+                (filename, file.mimetype, file_hash)
+            )
+            return cursor.lastrowid
+
 # Главная страница
 @app.route('/')
 @db_operation
@@ -75,11 +102,13 @@ def index(cursor):
 
     cursor.execute("""
         SELECT books.id, books.title, GROUP_CONCAT(genres.name SEPARATOR ', ') as genres, books.year, 
-               COALESCE(ROUND(AVG(reviews.rating), 1), 0) as average_rating, COUNT(reviews.id) as review_count
+               COALESCE(ROUND(AVG(reviews.rating), 1), 0) as average_rating, COUNT(reviews.id) as review_count,
+               covers.filename as cover_filename
         FROM books
         LEFT JOIN book_genres ON books.id = book_genres.book_id
         LEFT JOIN genres ON book_genres.genre_id = genres.id
         LEFT JOIN reviews ON books.id = reviews.book_id
+        LEFT JOIN covers ON books.cover_id = covers.id
         GROUP BY books.id
         ORDER BY books.year DESC
         LIMIT %s OFFSET %s
@@ -92,6 +121,7 @@ def index(cursor):
     total_pages = (total_books + per_page - 1) // per_page
 
     return render_template('index.html', books=books, page=page, total_pages=total_pages)
+
 
 # Аутентификация
 @app.route('/auth', methods=['POST', 'GET'])
@@ -148,14 +178,18 @@ def add_book(cursor):
         publisher = request.form['publisher']
         author = request.form['author']
         pages = request.form['pages']
-        cover_id = request.form['cover_id']
-        
-        cursor.execute("""
-            INSERT INTO books (title, description, year, publisher, author, pages, cover_id) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (title, description, year, publisher, author, pages, cover_id))
-        flash('Книга успешно добавлена', 'success')
-        return redirect(url_for('index'))
+        cover = request.files['cover']
+
+        if cover and allowed_file(cover.filename):
+            cover_id = save_cover(cover)
+            cursor.execute("""
+                INSERT INTO books (title, description, year, publisher, author, pages, cover_id) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (title, description, year, publisher, author, pages, cover_id))
+            flash('Книга успешно добавлена', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Неверный формат файла обложки', 'danger')
     return render_template('add_book.html')
 
 # Редактирование книги (администратор и модератор)
@@ -180,13 +214,12 @@ def edit_book(cursor, book_id):
         publisher = request.form['publisher']
         author = request.form['author']
         pages = request.form['pages']
-        cover_id = request.form['cover_id']
         
         cursor.execute("""
             UPDATE books 
-            SET title=%s, description=%s, year=%s, publisher=%s, author=%s, pages=%s, cover_id=%s 
+            SET title=%s, description=%s, year=%s, publisher=%s, author=%s, pages=%s
             WHERE id=%s
-        """, (title, description, year, publisher, author, pages, cover_id, book_id))
+        """, (title, description, year, publisher, author, pages, book_id))
         flash('Книга успешно отредактирована', 'success')
         return redirect(url_for('index'))
     return render_template('edit_book.html', book=book)
@@ -213,11 +246,12 @@ def delete_book(cursor, book_id):
 def view_book(cursor, book_id):
     cursor.execute("""
         SELECT books.*, GROUP_CONCAT(genres.name SEPARATOR ', ') as genres, 
-               COALESCE(ROUND(AVG(reviews.rating), 1), 0) as average_rating
+               COALESCE(ROUND(AVG(reviews.rating), 1), 0) as average_rating, covers.filename as cover_filename
         FROM books
         LEFT JOIN book_genres ON books.id = book_genres.book_id
         LEFT JOIN genres ON book_genres.genre_id = genres.id
         LEFT JOIN reviews ON books.id = reviews.book_id
+        LEFT JOIN covers ON books.cover_id = covers.id
         WHERE books.id = %s
         GROUP BY books.id
     """, (book_id,))
@@ -245,6 +279,7 @@ def view_book(cursor, book_id):
         user_review = cursor.fetchone()
         
     return render_template('view_book.html', book=book, reviews=reviews, user_review=user_review)
+
 
 # Добавление рецензии (пользователь)
 @app.route('/add_review/<int:book_id>', methods=['GET', 'POST'])

@@ -2,7 +2,7 @@
 {% block title %}Добавить книгу{% endblock %}
 {% block content %}
     <h1 class="mb-3 text-center">Добавить книгу</h1>
-    <form class="w-50 mx-auto" method="POST">
+    <form class="w-50 mx-auto" method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="title" class="form-label">Название</label>
             <input type="text" class="form-control" id="title" name="title" required>
@@ -28,8 +28,8 @@
             <input type="number" class="form-control" id="pages" name="pages" required>
         </div>
         <div class="mb-3">
-            <label for="cover_id" class="form-label">ID обложки</label>
-            <input type="number" class="form-control" id="cover_id" name="cover_id" required>
+            <label for="cover" class="form-label">Обложка</label>
+            <input type="file" class="form-control" id="cover" name="cover" required>
         </div>
         <button type="submit" class="btn btn-primary w-100 mb-3">Добавить</button>
     </form>

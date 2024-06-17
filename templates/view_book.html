@@ -1,42 +1,77 @@
 {% extends 'base.html' %}
 {% block title %}{{ book.title }}{% endblock %}
 {% block content %}
-    <div class="container mt-5">
-        <h1>{{ book.title }}</h1>
-        <h5>Жанры: {{ book.genres }}</h5>
-        <p>Автор: {{ book.author }}</p>
-        <p>Издатель: {{ book.publisher }}</p>
-        <p>Год: {{ book.year }}</p>
-        <p>Страницы: {{ book.pages }}</p>
-        <p>Описание: {{ book.description }}</p>
-        <p>Средняя оценка: {{ book.average_rating }}</p>
-        <hr>
-        <h3>Рецензии</h3>
-        {% if current_user.is_authenticated and user_review %}
+    <h1 class="mb-3 text-center">{{ book.title }}</h1>
+    <div class="row">
+        <div class="col-md-4">
+            {% if book.cover_filename %}
+                <img src="{{ url_for('static', filename='uploads/' ~ book.cover_filename) }}" class="img-fluid" alt="{{ book.title }}">
+            {% endif %}
+        </div>
+        <div class="col-md-8">
+            <p><strong>Автор:</strong> {{ book.author }}</p>
+            <p><strong>Издатель:</strong> {{ book.publisher }}</p>
+            <p><strong>Год выпуска:</strong> {{ book.year }}</p>
+            <p><strong>Жанры:</strong> {{ book.genres }}</p>
+            <p><strong>Средняя оценка:</strong> {{ book.average_rating }}</p>
+            <p>{{ book.description }}</p>
+            {% if current_user.is_authenticated %}
+                {% if current_user.role_id in [1, 2] %}
+                    <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-warning">Редактировать</a>
+                {% endif %}
+                {% if current_user.role_id == 1 %}
+                    <form action="{{ url_for('delete_book', book_id=book.id) }}" method="POST" class="d-inline">
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">Удалить</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    <hr>
+    <h2 class="mt-4">Рецензии</h2>
+    {% if user_review %}
+        <div class="alert alert-info">
+            <h4>Ваша рецензия</h4>
+            <p>Оценка: {{ user_review.rating }}</p>
+            <p>{{ user_review.text }}</p>
+            <a href="{{ url_for('edit_review', review_id=user_review.id) }}" class="btn btn-warning">Редактировать</a>
+        </div>
+    {% else %}
+        <a href="{{ url_for('add_review', book_id=book.id) }}" class="btn btn-primary">Написать рецензию</a>
+    {% endif %}
+    <div class="mt-4">
+        {% for review in reviews %}
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">{{ user_review.username }}</h5>
-                    <p class="card-text">{{ user_review.text }}</p>
-                    <p class="card-text"><small class="text-muted">Оценка: {{ user_review.rating }} - {{ user_review.created_at }}</small></p>
+                    <h5 class="card-title">{{ review.username }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Оценка: {{ review.rating }}</h6>
+                    <p class="card-text">{{ review.text }}</p>
+                    {% if current_user.is_authenticated and current_user.role_id in [1, 2] %}
+                        <a href="{{ url_for('edit_review', review_id=review.id) }}" class="btn btn-warning">Редактировать</a>
+                    {% endif %}
                 </div>
             </div>
-        {% endif %}
-        {% for review in reviews %}
-            {% if not (current_user.is_authenticated and review.user_id == current_user.id) %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ review.username }}</h5>
-                        <p class="card-text">{{ review.text }}</p>
-                        <p class="card-text"><small class="text-muted">Оценка: {{ review.rating }} - {{ review.created_at }}</small></p>
-                        {% if current_user.is_authenticated and current_user.role_id in [1, 2] %}
-                            <a href="{{ url_for('edit_review', review_id=review.id) }}" class="btn btn-warning">Редактировать</a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
         {% endfor %}
-        {% if current_user.is_authenticated and not user_review %}
-            <a href="{{ url_for('add_review', book_id=book.id) }}" class="btn btn-primary">Написать рецензию</a>
-        {% endif %}
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Удаление книги</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Вы уверены, что хотите удалить книгу {{ book.title }}?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+                    <form action="{{ url_for('delete_book', book_id=book.id) }}" method="POST">
+                        <button type="submit" class="btn btn-danger">Да, удалить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}
